@@ -52,11 +52,12 @@ func _on_restart_pressed() -> void:
 
 # ── 일시정지 ─────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.is_action_just_pressed("ui_cancel"):
-		if gameover_panel.visible:
-			return          # 게임오버 중에는 일시정지 불가
-		_toggle_pause()
-		get_viewport().set_input_as_handled()
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_ESCAPE:
+			if gameover_panel.visible:
+				return
+			_toggle_pause()
+			get_viewport().set_input_as_handled()
 
 func _toggle_pause() -> void:
 	var paused := not get_tree().paused
