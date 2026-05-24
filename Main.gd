@@ -2,7 +2,7 @@ extends Node2D
 
 const SCREEN_WIDTH := 1280
 const SCREEN_HEIGHT := 720
-const GROUND_Y := 500.0
+const GROUND_Y := 510.0
 const PLAYER_X := 640.0
 
 const SPAWN_INTERVAL_BASE := 2.5
