@@ -52,7 +52,7 @@ func _on_restart_pressed() -> void:
 
 # ── 일시정지 ─────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
-	if event.is_action_just_pressed("ui_cancel"):
+	if event is InputEventKey and event.is_action_just_pressed("ui_cancel"):
 		if gameover_panel.visible:
 			return          # 게임오버 중에는 일시정지 불가
 		_toggle_pause()
