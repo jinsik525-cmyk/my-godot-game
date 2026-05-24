@@ -6,18 +6,20 @@ signal enemy_died(enemy)
 const BASE_SPEED       := 80.0
 const ATTACK_RANGE     := 62.0
 const ATTACK_DAMAGE    := 15
+const WINDUP_MIN       := 0.55   # 예고 모션 최소 시간
+const WINDUP_MAX       := 0.72   # 예고 모션 최대 시간
 const ATTACK_DURATION  := 0.25
 const ATTACK_COOLDOWN  := 1.05
 const MAX_HEALTH       := 50
 const GRAVITY          := 900.0
-const KB_FRICTION      := 950.0   # 넉백 감속도
+const KB_FRICTION      := 950.0
 
 # 색상
 const C_BODY := Color(0.82, 0.18, 0.18, 1.0)
 const C_DARK := Color(0.58, 0.10, 0.10, 1.0)
 const C_HEAD := Color(0.92, 0.68, 0.60, 1.0)
 
-enum State { MOVING, ATTACKING, COOLDOWN }
+enum State { MOVING, WINDUP, ATTACKING, COOLDOWN }
 
 # ── 상태 ─────────────────────────────────────────────────────────────────────
 var health:       int   = MAX_HEALTH
@@ -32,12 +34,14 @@ var facing_dir:   int   = 1
 var walk_phase:   float = 0.0
 
 # ── 비주얼 노드 ──────────────────────────────────────────────────────────────
-var _head:  Polygon2D
-var _torso: Polygon2D
-var _arm_l: Line2D
-var _arm_r: Line2D
-var _leg_l: Line2D
-var _leg_r: Line2D
+var _head:        Polygon2D
+var _torso:       Polygon2D
+var _arm_l:       Line2D
+var _arm_r:       Line2D
+var _leg_l:       Line2D
+var _leg_r:       Line2D
+var _alert_label: Label
+var _alert_tween: Tween = null
 
 @onready var body_node: Node2D    = $Body
 @onready var hp_fill:   ColorRect = $HPBar/HPFill
@@ -66,6 +70,15 @@ func _build_character() -> void:
 	_head.polygon = _circle_poly(0.0, -78.0, 12.0, 12)
 	body_node.add_child(_head)
 
+	# "!" 경고 레이블 (머리 위, HP바 위)
+	_alert_label = Label.new()
+	_alert_label.text = "!"
+	_alert_label.add_theme_font_size_override("font_size", 26)
+	_alert_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.1, 1.0))
+	_alert_label.position = Vector2(-7.0, -130.0)
+	_alert_label.visible  = false
+	add_child(_alert_label)
+
 func init(p_player: Node2D, p_speed_multiplier: float) -> void:
 	player = p_player
 	speed  = BASE_SPEED * p_speed_multiplier
@@ -77,11 +90,9 @@ func _physics_process(delta: float) -> void:
 	if is_dead or player == null:
 		return
 
-	# 중력 적용
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 
-	# 넉백 중에는 AI 대신 감속만 처리
 	if is_knockback:
 		kb_timer -= delta
 		velocity.x = move_toward(velocity.x, 0.0, KB_FRICTION * delta)
@@ -90,6 +101,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		match state:
 			State.MOVING:    _state_moving()
+			State.WINDUP:    _state_windup(delta)
 			State.ATTACKING: _state_attacking(delta)
 			State.COOLDOWN:  _state_cooldown(delta)
 
@@ -103,11 +115,40 @@ func _state_moving() -> void:
 
 	if dist <= ATTACK_RANGE:
 		velocity.x = 0.0
-		_enter_attack()
+		_enter_windup()          # ATTACKING 대신 WINDUP 먼저
 	else:
 		facing_dir = 1 if dx > 0.0 else -1
 		velocity.x = facing_dir * speed
 
+# ── 예고 모션(WINDUP) ─────────────────────────────────────────────────────────
+func _enter_windup() -> void:
+	state       = State.WINDUP
+	state_timer = randf_range(WINDUP_MIN, WINDUP_MAX)
+
+	# "!" 레이블 깜빡임 시작
+	_alert_label.visible   = true
+	_alert_label.modulate.a = 1.0
+	if _alert_tween:
+		_alert_tween.kill()
+	_alert_tween = create_tween().set_loops()
+	_alert_tween.tween_property(_alert_label, "modulate:a", 0.1, 0.17)
+	_alert_tween.tween_property(_alert_label, "modulate:a", 1.0, 0.17)
+
+func _state_windup(delta: float) -> void:
+	velocity.x   = 0.0
+	state_timer -= delta
+	if state_timer <= 0.0:
+		_hide_alert()
+		_enter_attack()
+
+func _hide_alert() -> void:
+	if _alert_tween:
+		_alert_tween.kill()
+		_alert_tween = null
+	if is_instance_valid(_alert_label):
+		_alert_label.visible = false
+
+# ── 공격 ─────────────────────────────────────────────────────────────────────
 func _enter_attack() -> void:
 	state       = State.ATTACKING
 	state_timer = ATTACK_DURATION
@@ -120,13 +161,6 @@ func _state_attacking(delta: float) -> void:
 		state       = State.COOLDOWN
 		state_timer = ATTACK_COOLDOWN
 
-func _state_cooldown(delta: float) -> void:
-	velocity.x   = 0.0
-	state_timer -= delta
-	if state_timer <= 0.0:
-		state = State.MOVING
-
-# ── 공격 ─────────────────────────────────────────────────────────────────────
 func _do_attack() -> void:
 	if is_dead:
 		return
@@ -141,6 +175,12 @@ func _do_attack() -> void:
 	await get_tree().create_timer(0.15).timeout
 	if is_instance_valid(self) and not is_dead:
 		body_node.modulate = Color.WHITE
+
+func _state_cooldown(delta: float) -> void:
+	velocity.x   = 0.0
+	state_timer -= delta
+	if state_timer <= 0.0:
+		state = State.MOVING
 
 # ── 피격 / 넉백 ──────────────────────────────────────────────────────────────
 func take_damage(amount: int, knockback_force: float = 0.0, knockback_dir: int = 0) -> void:
@@ -162,11 +202,11 @@ func take_damage(amount: int, knockback_force: float = 0.0, knockback_dir: int =
 		_die()
 
 func apply_knockback(force: float, dir: int) -> void:
+	_hide_alert()
 	velocity.x   = dir * force
 	velocity.y   = -100.0
 	is_knockback = true
 	kb_timer     = 0.30
-	# 넉백 동안 쿨다운 상태로 전환 (공격 불가)
 	state        = State.COOLDOWN
 	state_timer  = 0.30
 
@@ -175,6 +215,7 @@ func _update_hp_bar() -> void:
 
 # ── 사망 ─────────────────────────────────────────────────────────────────────
 func _die() -> void:
+	_hide_alert()
 	is_dead = true
 	body_node.modulate = Color(0.5, 0.5, 0.5, 0.65)
 	emit_signal("enemy_died", self)
@@ -184,35 +225,37 @@ func _die() -> void:
 
 # ── 비주얼 업데이트 ───────────────────────────────────────────────────────────
 func _update_visuals(delta: float) -> void:
-	# 걷기 위상
 	if state == State.MOVING and abs(velocity.x) > 10.0 and is_on_floor():
 		walk_phase += delta * 7.5
 	else:
 		walk_phase = move_toward(walk_phase, 0.0, delta * 14.0)
 	var sw := sin(walk_phase) * 0.44
 
-	# 플레이어 방향 갱신 (넉백 중 제외)
 	if player != null and not is_knockback:
 		var dx := player.global_position.x - global_position.x
 		if abs(dx) > 5.0:
 			facing_dir = 1 if dx > 0.0 else -1
 
-	# 팔
 	const ARM_ROOT := Vector2(0.0, -60.0)
 	const ARM_LEN  := 24.0
-	if state == State.ATTACKING:
-		var lead := deg_to_rad(78.0)
-		if facing_dir > 0:
-			_set_limb(_arm_r, ARM_ROOT,  lead,  ARM_LEN)
-			_set_limb(_arm_l, ARM_ROOT, -0.28,  ARM_LEN)
-		else:
-			_set_limb(_arm_r, ARM_ROOT,  0.28,  ARM_LEN)
-			_set_limb(_arm_l, ARM_ROOT, -lead,  ARM_LEN)
-	else:
-		_set_limb(_arm_r, ARM_ROOT,  0.50 + sw, ARM_LEN)
-		_set_limb(_arm_l, ARM_ROOT, -0.50 - sw, ARM_LEN)
 
-	# 다리
+	match state:
+		State.WINDUP:
+			# 양팔을 위로 들어 공격 예고
+			_set_limb(_arm_r, ARM_ROOT, -deg_to_rad(142.0), ARM_LEN)
+			_set_limb(_arm_l, ARM_ROOT, -deg_to_rad(142.0), ARM_LEN)
+		State.ATTACKING:
+			var lead := deg_to_rad(78.0)
+			if facing_dir > 0:
+				_set_limb(_arm_r, ARM_ROOT,  lead,  ARM_LEN)
+				_set_limb(_arm_l, ARM_ROOT, -0.28,  ARM_LEN)
+			else:
+				_set_limb(_arm_r, ARM_ROOT,  0.28,  ARM_LEN)
+				_set_limb(_arm_l, ARM_ROOT, -lead,  ARM_LEN)
+		_:
+			_set_limb(_arm_r, ARM_ROOT,  0.50 + sw, ARM_LEN)
+			_set_limb(_arm_l, ARM_ROOT, -0.50 - sw, ARM_LEN)
+
 	const LEG_ROOT := Vector2(0.0, -36.0)
 	const LEG_LEN  := 36.0
 	if not is_on_floor():

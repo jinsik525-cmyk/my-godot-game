@@ -76,6 +76,7 @@ func _on_enemy_died(_enemy: Node) -> void:
 
 func _on_player_died() -> void:
 	game_active = false
+	Scores.save_score(points)   # 점수 저장
 	# 남아 있는 적 멈추기
 	for e in enemy_container.get_children():
 		if e.has_method("set"):

@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://UI.gd" id="1_ui"]
 
 [node name="UI" type="CanvasLayer"]
+process_mode = 3
 script = ExtResource("1_ui")
 
 [node name="TopBar" type="HBoxContainer" parent="."]
@@ -113,3 +114,51 @@ X : 방어 / 패링
 C : 필살기 (게이지 만땅 시)"
 theme_override_font_sizes/font_size = 15
 self_modulate = Color(0.85, 0.85, 0.85, 1)
+
+[node name="PausePanel" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0, 0, 0, 0.58)
+mouse_filter = 0
+visible = false
+
+[node name="PauseBox" type="Panel" parent="PausePanel"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = -130.0
+offset_right = 190.0
+offset_bottom = 130.0
+
+[node name="VBox" type="VBoxContainer" parent="PausePanel/PauseBox"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -100.0
+offset_right = 150.0
+offset_bottom = 100.0
+theme_override_constants/separation = 22
+
+[node name="PauseTitle" type="Label" parent="PausePanel/PauseBox/VBox"]
+text = "⏸  일시정지"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 30
+self_modulate = Color(1, 1, 1, 1)
+
+[node name="ResumeButton" type="Button" parent="PausePanel/PauseBox/VBox"]
+name = "ResumeButton"
+text = "계속 진행"
+theme_override_font_sizes/font_size = 22
+custom_minimum_size = Vector2(200, 50)
+
+[node name="QuitButton" type="Button" parent="PausePanel/PauseBox/VBox"]
+name = "QuitButton"
+text = "타이틀로"
+theme_override_font_sizes/font_size = 22
+custom_minimum_size = Vector2(200, 50)
