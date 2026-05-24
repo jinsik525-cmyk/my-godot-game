@@ -14,6 +14,8 @@ const PARRY_WINDOW := 0.25        # 패링 판정 시간(초)
 const PARRY_GAIN := 30            # 패링 성공 시 게이지 증가량
 const ATTACK_COOLDOWN := 0.4
 const SPECIAL_PER_KILL := 8       # 적 처치 시 게이지 증가
+const GRAVITY := 900.0            # 중력 가속도 (px/s²)
+const JUMP_VELOCITY := -480.0     # 점프 초기 속도 (위 방향 = 음수)
 
 var health: int = MAX_HEALTH
 var special_gauge: int = 0
@@ -35,6 +37,10 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
+
+	# 중력 적용 (바닥에 있을 때는 누적되지 않도록 is_on_floor 확인)
+	if not is_on_floor():
+		velocity.y += GRAVITY * delta
 
 	_handle_timers(delta)
 	_handle_input()
@@ -58,6 +64,10 @@ func _handle_input() -> void:
 	# 이동
 	var dir := Input.get_axis("move_left", "move_right")
 	velocity.x = dir * MOVE_SPEED
+
+	# 점프 (바닥에 있을 때만)
+	if Input.is_action_just_pressed("jump") and is_on_floor():
+		velocity.y = JUMP_VELOCITY
 
 	# 공격
 	if Input.is_action_just_pressed("attack") and not is_attacking and attack_timer <= 0.0:

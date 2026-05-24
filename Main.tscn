@@ -1,8 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://main001"]
+[gd_scene load_steps=4 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://Main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://player001" path="res://Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://ui001" path="res://UI.tscn" id="3_ui"]
+
+[sub_resource type="RectangleShape2D" id="GroundShape"]
+size = Vector2(1280, 40)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -27,6 +30,12 @@ offset_top = 508.0
 offset_right = 1280.0
 offset_bottom = 514.0
 color = Color(0.5, 0.4, 0.3, 1)
+
+[node name="GroundBody" type="StaticBody2D" parent="."]
+position = Vector2(640, 510)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="GroundBody"]
+shape = SubResource("GroundShape")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(640, 500)
