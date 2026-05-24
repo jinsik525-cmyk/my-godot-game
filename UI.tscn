@@ -93,3 +93,23 @@ name = "RestartButton"
 text = "다시 시작"
 theme_override_font_sizes/font_size = 22
 custom_minimum_size = Vector2(160, 48)
+
+[node name="ControlsPanel" type="PanelContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -220.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 160.0
+
+[node name="ControlsLabel" type="Label" parent="ControlsPanel"]
+text = "← → : 이동
+↑ : 점프
+Z : 공격
+X : 방어 / 패링
+C : 필살기 (게이지 만땅 시)"
+theme_override_font_sizes/font_size = 15
+self_modulate = Color(0.85, 0.85, 0.85, 1)
