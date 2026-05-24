@@ -36,7 +36,7 @@ var is_knockback    := false
 var attack_timer    := 0.0
 var parry_timer     := 0.0
 var kb_timer        := 0.0
-var facing_dir: int := 1        # 1 = 오른쪽, -1 = 왼쪽
+var facing_dir: int = 1         # 1 = 오른쪽, -1 = 왼쪽
 
 # ── 애니메이션 ───────────────────────────────────────────────────────────────
 var walk_phase := 0.0
